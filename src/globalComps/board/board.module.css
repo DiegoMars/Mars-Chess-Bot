@@ -1,11 +1,23 @@
 .board {
   margin: auto;
+  border-collapse: collapse;
 }
 
-.white {
+td {
+  width: 5rem;
+  height: 5rem;
+}
+
+td div {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+tr:nth-child(odd) td:nth-child(even), tr:nth-child(even) td:nth-child(odd) {
   background-color: var(--primary);
 }
 
-.black {
+tr:nth-child(even) td:nth-child(even), tr:nth-child(odd) td:nth-child(odd) {
   background-color: var(--secondary);
 }

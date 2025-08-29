@@ -1,19 +1,55 @@
 import styles from "./board.module.css";
 
-function Board() {
-  let board = [];
-  for (let i = 0; i < 8; i++) {
-    let row = [];
-    for (let j = i % 2; j < (8 + (i % 2)); j++){
-      row.push(j % 2);
+const renderRow = (fen) => {
+  let row = [];
+  for (let i=0; i < fen.length; i++) {
+    let char = fen.charAt(0);
+    let isNumber = !isNaN(char);
+    if (isNumber) {
+      for (let j = 0; j < char; i++){
+        row.push(" ");
+      }
+    } else {
+      row.push(char);
     }
-    board.push(row);
   }
-  console.log(board);
+  return row;
+};
+
+function Board() {
+  // Ima try to use FEN to describe the board
+  // https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation
+  // Lowercase for black, uppercase for white
+  // Pawn = p
+  // Rook = r
+  // Knight = n
+  // Bishop = b
+  // Queen = q
+  // King = k
+  let Pieces = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  let fenPositions = Pieces.split("/", 8);
+  fenPositions[7] = fenPositions[7].split(" ", 1);
+  let Board = [];
+  for (let i = 0; i < 8; i++) {
+    Board.push(renderRow(fenPositions[i]));
+  }
+  console.log(Board);
 
   return (
-    <section className={styles.board}>
-      
+    <section>
+      <table className={styles.board}>
+        <tbody>
+          {Board.map((Row,idx) => (
+            <tr key={idx}>
+              {Row.map((cell,idx) =>(
+                <td>
+                  <div>{cell}</div>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }
