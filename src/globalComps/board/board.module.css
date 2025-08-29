@@ -1,0 +1,11 @@
+.board {
+  margin: auto;
+}
+
+.white {
+  background-color: var(--primary);
+}
+
+.black {
+  background-color: var(--secondary);
+}
