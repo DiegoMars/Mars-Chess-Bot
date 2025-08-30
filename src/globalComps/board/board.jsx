@@ -1,8 +1,11 @@
 import styles from "./board.module.css";
 
 const renderRow = (fenElement) => {
-  let fen = fenElement[0];
   let row = [];
+  let fen = fenElement;
+  if (Array.isArray(fenElement)){
+    fen = fenElement[0];
+  }
   for (let i=0; i < fen.length; i++) {
     let char = fen.charAt(i);
     let isNumber = !isNaN(char);
@@ -44,7 +47,7 @@ function Board() {
             <tr key={idx}>
               {Row.map((cell,idx) =>(
                 <td>
-                  <div>{cell}</div>
+                  <div key={idx}>{cell}</div>
                 </td>
               ))}
             </tr>
