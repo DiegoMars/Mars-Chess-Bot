@@ -1,12 +1,13 @@
 import styles from "./board.module.css";
 
-const renderRow = (fen) => {
+const renderRow = (fenElement) => {
+  let fen = fenElement[0];
   let row = [];
   for (let i=0; i < fen.length; i++) {
-    let char = fen.charAt(0);
+    let char = fen.charAt(i);
     let isNumber = !isNaN(char);
     if (isNumber) {
-      for (let j = 0; j < char; i++){
+      for (let j = 0; j < char; j++){
         row.push(" ");
       }
     } else {
