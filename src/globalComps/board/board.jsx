@@ -1,3 +1,17 @@
+import Bbishop from "./../../assets/pieces/bishop-b.svg";
+import Wbishop from "./../../assets/pieces/bishop-w.svg";
+import Bking from "./../../assets/pieces/king-b.svg";
+import Wking from "./../../assets/pieces/king-w.svg";
+import Bknight from "./../../assets/pieces/knight-b.svg";
+import Wknight from "./../../assets/pieces/knight-w.svg";
+import Bpawn from "./../../assets/pieces/pawn-b.svg";
+import Wpawn from "./../../assets/pieces/pawn-w.svg";
+import Bqueen from "./../../assets/pieces/queen-b.svg";
+import Wqueen from "./../../assets/pieces/queen-w.svg";
+import Brook from "./../../assets/pieces/rook-b.svg";
+import Wrook from "./../../assets/pieces/rook-w.svg";
+import PlaceholderImg from "./../../assets/pieces/No_image.svg";
+import { useState, useEffect } from "react";
 import styles from "./board.module.css";
 
 const renderRow = (fenElement) => {
@@ -21,23 +35,31 @@ const renderRow = (fenElement) => {
 };
 
 function Board() {
+  const [pieces, setPieces] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
   // Ima try to use FEN to describe the board
   // https://en.wikipedia.org/wiki/Forsyth–Edwards_Notation
-  // Lowercase for black, uppercase for white
-  // Pawn = p
-  // Rook = r
-  // Knight = n
-  // Bishop = b
-  // Queen = q
-  // King = k
-  let Pieces = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-  let fenPositions = Pieces.split("/", 8);
+  const pieceImg = {
+    p: Bpawn,
+    r: Brook,
+    n: Bknight,
+    b: Bbishop,
+    q: Bqueen,
+    k: Bking,
+    P: Wpawn,
+    R: Wrook,
+    N: Wknight,
+    B: Wbishop,
+    Q: Wqueen,
+    K: Wking,
+    " ": PlaceholderImg,
+  }
+  let fenPositions = pieces.split("/", 8);
   fenPositions[7] = fenPositions[7].split(" ", 1);
   let Board = [];
   for (let i = 0; i < 8; i++) {
     Board.push(renderRow(fenPositions[i]));
   }
-  console.log(Board);
 
   return (
     <section>
@@ -46,8 +68,8 @@ function Board() {
           {Board.map((Row,idx) => (
             <tr key={idx}>
               {Row.map((cell,idx) =>(
-                <td>
-                  <div key={idx}>{cell}</div>
+                <td key={idx} className={styles.cell}>
+                  <img src={pieceImg[cell]} alt={cell + " piece"} />
                 </td>
               ))}
             </tr>

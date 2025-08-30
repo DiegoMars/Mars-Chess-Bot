@@ -8,10 +8,16 @@ td {
   height: 5rem;
 }
 
-td div {
+td * {
+  width: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.cell {
+  background-color: var(--primary-300) !important;
 }
 
 tr:nth-child(odd) td:nth-child(even), tr:nth-child(even) td:nth-child(odd) {
