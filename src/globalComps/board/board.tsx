@@ -180,6 +180,8 @@ function Board() {
           squareStyles: optionSquares,
           darkSquareStyle: { backgroundColor: "var(--secondary)" },
           lightSquareStyle: { backgroundColor: "var(--primary)" },
+          boardStyle: { border: "1rem solid var(--accent-800)" },
+          showNotation: false,
           animationDuration: 300,
         }}
       />
