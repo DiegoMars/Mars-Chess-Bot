@@ -1,4 +1,7 @@
-use std::{path::PathBuf, process::Command};
+use std::{
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 use crate::stockfish; // Used to run terminal commands
 
@@ -17,10 +20,9 @@ struct Engine {
     pv: Option<String>,
     // number of halfmoves the engine looks ahead
     depth: Option<u64>,
-    // Engine is ready?
-    ready: bool,
 }
 
+// I could implement these into the struct, then use a command to activate it
 #[tauri::command]
 pub async fn stockfish(app: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
