@@ -1,11 +1,10 @@
 use std::{
+    io::{BufRead, BufReader, Write},
     path::PathBuf,
     process::{Command, Stdio},
 };
 
-use crate::stockfish; // Used to run terminal commands
-
-struct Engine {
+struct EngineMessage {
     // stockfish engine message in UCI format
     uci_message: String,
     // found best move for current position in format `e2e4`
@@ -20,6 +19,26 @@ struct Engine {
     pv: Option<String>,
     // number of halfmoves the engine looks ahead
     depth: Option<u64>,
+}
+
+pub struct Stockfish {
+    child: std::process::Child,
+}
+
+impl Stockfish {
+    pub fn new() -> Self {
+        let sf_binary = PathBuf::from("../stockfishBinary/stockfish");
+        let mut child = Command::new(sf_binary.into_os_string())
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to launch Stockfish");
+        let mut stdin = child.stdin.take().expect("Failed to open stdin");
+        stdin
+            .write_all("isready".as_bytes())
+            .expect("Failed to write to stdin");
+        Self { child }
+    }
 }
 
 // I could implement these into the struct, then use a command to activate it
