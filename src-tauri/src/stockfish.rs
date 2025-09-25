@@ -80,13 +80,22 @@ impl Stockfish {
     }
 }
 
+// This is for Tauri to be able to integrate it into the app so the process
+// doesn't die or smt like that. This is good so that the thread outputting what
+// the engine is saying doesn't die
+#[derive(Default)]
+pub struct SharedStockfish(Mutex<Option<crate::stockfish::Stockfish>>);
+impl SharedStockfish {
+    pub fn default() -> Self {
+        SharedStockfish(Mutex::new(None))
+    }
+}
+
 // I could implement these into the struct, then use a command to activate it
 #[tauri::command]
-pub async fn stockfish(app: tauri::AppHandle) {
+pub async fn stockfish(state: State<'_, Mutex<SharedStockfish>>) -> Result<(String), ()> {
     tauri::async_runtime::spawn(async move {
-        let sf_binary = PathBuf::from("../stockfishBinary/");
-
-        // Should prolly change this so that it can instead run an exe depending on the OS
-        let stockfish = Command::new("./stockfish-windows-x86-64-avx2.exe");
+        let random_error = Err(());
+        Ok("Started Engine")
     });
 }
