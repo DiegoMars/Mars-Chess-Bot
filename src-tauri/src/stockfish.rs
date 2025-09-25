@@ -1,7 +1,9 @@
 use std::{
     io::{BufRead, BufReader, Write},
     path::PathBuf,
-    process::{Command, Stdio},
+    process::{ChildStdin, Command, Stdio},
+    sync::{Arc, Mutex},
+    thread,
 };
 
 struct EngineMessage {
@@ -22,22 +24,59 @@ struct EngineMessage {
 }
 
 pub struct Stockfish {
-    child: std::process::Child,
+    pub child: std::process::Child,
+    pub shared_stdin: Arc<Mutex<ChildStdin>>,
+    // Arc is for sharing smt between multiple threads
+    // Mutex is to prevent multiple threads accessing and mutating something
+    // at the same time
+    pub stdout_thread: Option<std::thread::JoinHandle<()>>,
 }
 
 impl Stockfish {
     pub fn new() -> Self {
-        let sf_binary = PathBuf::from("../stockfishBinary/stockfish");
-        let mut child = Command::new(sf_binary.into_os_string())
+        let sf_binary = PathBuf::from("./stockfishBinary/stockfish.exe");
+        let mut child = Command::new(sf_binary.into_os_string()) // Passes binary
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn()
             .expect("Failed to launch Stockfish");
-        let mut stdin = child.stdin.take().expect("Failed to open stdin");
-        stdin
-            .write_all("isready".as_bytes())
-            .expect("Failed to write to stdin");
-        Self { child }
+
+        // Grabs input stream
+        let stdin = child.stdin.take().expect("Failed to open stdin");
+
+        // Grabs output stream
+        let stdout = child.stdout.take().expect("Faild to open stdout");
+
+        // Starts a thread that reads out the raw stockfish lines from output
+        // stream
+        let stdout_thread = thread::spawn(move || {
+            let reader = BufReader::new(stdout);
+            for line in reader.lines() {
+                println!("Stockfish says: {:#?}", line.unwrap());
+            }
+        });
+
+        // Wraps the input stream so it can be used in the future
+        let shared_stdin = Arc::new(Mutex::new(stdin));
+        {
+            // In brakets so "locked" gets dropped after calling
+            // I believe this would be called a "block expression"
+            let mut locked = shared_stdin.lock().unwrap();
+            writeln!(locked, "uci").unwrap();
+            locked.flush().unwrap();
+        }
+        {
+            let mut locked = shared_stdin.lock().unwrap();
+            writeln!(locked, "isready").unwrap();
+            locked.flush().unwrap();
+        }
+        std::thread::sleep(std::time::Duration::from_secs(1)); // Time for commands to go into the
+                                                               // command
+        Self {
+            child: child,
+            shared_stdin: shared_stdin,
+            stdout_thread: Some(stdout_thread),
+        }
     }
 }
 
