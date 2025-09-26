@@ -5,6 +5,7 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
+use tauri::State;
 
 struct EngineMessage {
     // stockfish engine message in UCI format
@@ -24,12 +25,12 @@ struct EngineMessage {
 }
 
 pub struct Stockfish {
-    pub child: std::process::Child,
-    pub shared_stdin: Arc<Mutex<ChildStdin>>,
+    child: std::process::Child,
+    shared_stdin: Arc<Mutex<ChildStdin>>,
     // Arc is for sharing smt between multiple threads
     // Mutex is to prevent multiple threads accessing and mutating something
     // at the same time
-    pub stdout_thread: Option<std::thread::JoinHandle<()>>,
+    stdout_thread: Option<std::thread::JoinHandle<()>>,
 }
 
 impl Stockfish {
@@ -84,18 +85,27 @@ impl Stockfish {
 // doesn't die or smt like that. This is good so that the thread outputting what
 // the engine is saying doesn't die
 #[derive(Default)]
-pub struct SharedStockfish(Mutex<Option<crate::stockfish::Stockfish>>);
+pub struct SharedStockfish(Arc<Mutex<Option<crate::stockfish::Stockfish>>>);
 impl SharedStockfish {
     pub fn default() -> Self {
-        SharedStockfish(Mutex::new(None))
+        SharedStockfish(Arc::new(Mutex::new(None)))
     }
 }
 
 // I could implement these into the struct, then use a command to activate it
 #[tauri::command]
-pub async fn stockfish(state: State<'_, Mutex<SharedStockfish>>) -> Result<(String), ()> {
+pub async fn start_stockfish(state: State<'_, SharedStockfish>) -> Result<String, ()> {
+    // I THINK there is a layer of Arc and mutex that is just not needed, Tauri already implements
+    // Arc but idk I think it is worth playing around with
+    let state = state.inner().0.clone();
+
     tauri::async_runtime::spawn(async move {
-        let random_error = Err(());
-        Ok("Started Engine")
+        let shared = state.lock().unwrap();
+        if shared.is_none() {
+            println!("Engine is nonexistent");
+        } else {
+            println!("Engine does exist")
+        }
     });
+    Ok("Engine Started".into())
 }
