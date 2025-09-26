@@ -13,15 +13,3 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::stockfish;
-    use tokio;
-
-    #[tokio::test]
-    async fn test_stockfish() {
-        let _stockfish = stockfish::Stockfish::new();
-        assert!(true);
-    }
-}

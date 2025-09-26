@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, Mutex},
     thread,
 };
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 struct EngineMessage {
     // stockfish engine message in UCI format
@@ -34,7 +34,7 @@ pub struct Stockfish {
 }
 
 impl Stockfish {
-    pub fn new() -> Self {
+    fn new(app: AppHandle) -> Self {
         let sf_binary = PathBuf::from("./stockfishBinary/stockfish.exe");
         let mut child = Command::new(sf_binary.into_os_string()) // Passes binary
             .stdin(Stdio::piped())
@@ -53,7 +53,7 @@ impl Stockfish {
         let stdout_thread = thread::spawn(move || {
             let reader = BufReader::new(stdout);
             for line in reader.lines() {
-                println!("Stockfish says: {:#?}", line.unwrap());
+                app.emit("stockfish-says", line.unwrap()).unwrap();
             }
         });
 
@@ -95,7 +95,10 @@ impl SharedStockfish {
 
 // I could implement these into the struct, then use a command to activate it
 #[tauri::command]
-pub async fn start_stockfish(state: State<'_, SharedStockfish>) -> Result<String, ()> {
+pub async fn start_stockfish(
+    app: AppHandle,
+    state: State<'_, SharedStockfish>,
+) -> Result<String, ()> {
     // I THINK there is a layer of Arc and mutex that is just not needed, Tauri already implements
     // Arc but idk I think it is worth playing around with
     let state = state.inner().0.clone();
@@ -104,7 +107,7 @@ pub async fn start_stockfish(state: State<'_, SharedStockfish>) -> Result<String
         let mut shared = state.lock().unwrap();
         if shared.is_none() {
             println!("Engine is nonexistent");
-            *shared = Some(Stockfish::new());
+            *shared = Some(Stockfish::new(app));
         } else {
             println!("Engine does exist")
         }

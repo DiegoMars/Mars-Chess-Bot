@@ -2,10 +2,23 @@ import { Chessboard, type PieceDropHandlerArgs } from "react-chessboard";
 import { Chess } from 'chess.js';
 import { useState, useEffect, useRef } from "react";
 import { invoke } from  '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import styles from "./board.module.css";
 
 function Board() {
-  invoke("start_stockfish");
+  invoke("start_stockfish"); // Testing that stockfish awakes (will eventually add a clean up
+                             // function for killing stockfish
+
+  useEffect(() => {
+    // Attempting to listen to stockfish
+    const listener = listen("stockfish-says", (event) => {
+      console.log(`Stockfish says: ${event.paylod}`);
+    });
+
+    return () => {
+      listener.then((f) => f());
+    };
+  }, []);
 
   // create a chess game using a ref to always have access to the latest game state within closures and maintain the game state across renders
   const chessGameRef = useRef(new Chess());
