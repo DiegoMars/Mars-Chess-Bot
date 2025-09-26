@@ -1,9 +1,12 @@
 import { Chessboard, type PieceDropHandlerArgs } from "react-chessboard";
 import { Chess } from 'chess.js';
 import { useState, useEffect, useRef } from "react";
+import { invoke } from  '@tauri-apps/api/core';
 import styles from "./board.module.css";
 
 function Board() {
+  invoke("start_stockfish");
+
   // create a chess game using a ref to always have access to the latest game state within closures and maintain the game state across renders
   const chessGameRef = useRef(new Chess());
   const chessGame = chessGameRef.current;

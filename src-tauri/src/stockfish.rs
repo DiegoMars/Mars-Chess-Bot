@@ -71,8 +71,9 @@ impl Stockfish {
             writeln!(locked, "isready").unwrap();
             locked.flush().unwrap();
         }
-        std::thread::sleep(std::time::Duration::from_secs(1)); // Time for commands to go into the
-                                                               // command
+        // std::thread::sleep(std::time::Duration::from_secs(1)); // Time for commands to go into the
+        //                                                        // command
+        println!("Engine is running");
         Self {
             child: child,
             shared_stdin: shared_stdin,
@@ -100,9 +101,10 @@ pub async fn start_stockfish(state: State<'_, SharedStockfish>) -> Result<String
     let state = state.inner().0.clone();
 
     tauri::async_runtime::spawn(async move {
-        let shared = state.lock().unwrap();
+        let mut shared = state.lock().unwrap();
         if shared.is_none() {
             println!("Engine is nonexistent");
+            *shared = Some(Stockfish::new());
         } else {
             println!("Engine does exist")
         }
