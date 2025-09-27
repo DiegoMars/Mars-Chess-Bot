@@ -6,21 +6,8 @@ import { listen } from '@tauri-apps/api/event';
 import styles from "./board.module.css";
 
 function Board() {
-  invoke("start_stockfish"); // Testing that stockfish awakes (will eventually add a clean up
-                             // function for killing stockfish
-
-  useEffect(() => {
-    // Attempting to listen to stockfish
-    const listener = listen("stockfish-says", (event) => {
-      console.log(`Stockfish says: ${event.paylod}`);
-    });
-
-    return () => {
-      listener.then((f) => f());
-    };
-  }, []);
-
-  // create a chess game using a ref to always have access to the latest game state within closures and maintain the game state across renders
+  // create a chess game using a ref to always have access to the latest game state within closures
+  // and maintain the game state across renders
   const chessGameRef = useRef(new Chess());
   const chessGame = chessGameRef.current;
 
@@ -28,6 +15,30 @@ function Board() {
   const [chessPosition, setChessPosition] = useState(chessGame.fen());
   const [moveFrom, setMoveFrom] = useState('');
   const [optionSquares, setOptionSquares] = useState({});
+
+  // Stockfish stuff
+  const [rawSFMessage, setRawSFMessage] = useState("");
+  const [sfBestMove, setSFBestMove] = useState("");                     // Best move for current pos
+  const [sfPonder, setSFPonder] = useState("");                         // Best move for opp
+  const [sfPositionEvaluation, setSFPositionEvaluation] = useState(""); // Eval
+  const [sfPossibleMate, setSFPossibleMate] = useState("");             // Moves till mate
+  const [sfPv, setSFPv] = useState("");                                 // Best line found
+  const [sfDepth, setSFDepth] = useState("");                           // Number of moves looked 
+                                                                        //  ahead
+
+  useEffect(() => {
+    // Attempting to listen to stockfish
+    const listener = listen("stockfish-says", (event) => {
+      console.log(`Stockfish says: ${event.payload}`);
+    });
+    // Starts stockfish
+    invoke("start_stockfish");
+
+    return () => {
+      listener.then((f) => f());
+      invoke("kill_stockfish");
+    };
+  }, []);
 
   // get the move options for a square to show valid moves
   function getMoveOptions(square: Square) {
@@ -184,6 +195,7 @@ function Board() {
       return false;
     }
   }
+  // ------ END REACT CHESSBOARD STUFF ------
 
   return (
     <section className={styles.boardContainer}>

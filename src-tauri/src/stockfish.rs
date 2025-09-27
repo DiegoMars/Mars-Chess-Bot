@@ -73,12 +73,22 @@ impl Stockfish {
         }
         // std::thread::sleep(std::time::Duration::from_secs(1)); // Time for commands to go into the
         //                                                        // command
-        println!("Engine is running");
+        println!("Stockfish started");
         Self {
             child: child,
             shared_stdin: shared_stdin,
             stdout_thread: Some(stdout_thread),
         }
+    }
+}
+// When the reference for the stockfish struct is dropped, kill stockfish
+impl Drop for Stockfish {
+    fn drop(&mut self) {
+        // Attempt to kill the child process
+        if let Err(err) = self.child.kill() {
+            eprintln!("Failed to kill Stockfish process: {:?}", err);
+        }
+        println!("Stockfish killed");
     }
 }
 
@@ -93,24 +103,36 @@ impl SharedStockfish {
     }
 }
 
-// I could implement these into the struct, then use a command to activate it
 #[tauri::command]
 pub async fn start_stockfish(
     app: AppHandle,
     state: State<'_, SharedStockfish>,
 ) -> Result<String, ()> {
     // I THINK there is a layer of Arc and mutex that is just not needed, Tauri already implements
-    // Arc but idk I think it is worth playing around with
+    // Arc but idk I think it is worth playing around with in the future
     let state = state.inner().0.clone();
 
     tauri::async_runtime::spawn(async move {
         let mut shared = state.lock().unwrap();
         if shared.is_none() {
-            println!("Engine is nonexistent");
             *shared = Some(Stockfish::new(app));
         } else {
-            println!("Engine does exist")
+            println!("Engine already exists");
         }
     });
-    Ok("Engine Started".into())
+    Ok("Stockfish started".into())
+}
+
+#[tauri::command]
+pub async fn kill_stockfish(state: State<'_, SharedStockfish>) -> Result<String, ()> {
+    let state = state.inner().0.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut shared = state.lock().unwrap();
+        if shared.is_none() {
+            println!("Engine is already dead");
+        } else {
+            *shared = None; // Drops reference to stockfish
+        }
+    });
+    Ok("Stockfish killed".into())
 }
