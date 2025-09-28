@@ -17,19 +17,46 @@ function Board() {
   const [optionSquares, setOptionSquares] = useState({});
 
   // Stockfish stuff
-  const [rawSFMessage, setRawSFMessage] = useState("");
-  const [sfBestMove, setSFBestMove] = useState("");                     // Best move for current pos
-  const [sfPonder, setSFPonder] = useState("");                         // Best move for opp
-  const [sfPositionEvaluation, setSFPositionEvaluation] = useState(""); // Eval
-  const [sfPossibleMate, setSFPossibleMate] = useState("");             // Moves till mate
-  const [sfPv, setSFPv] = useState("");                                 // Best line found
-  const [sfDepth, setSFDepth] = useState("");                           // Number of moves looked 
-                                                                        //  ahead
+  // Raw message
+  const [rawSFMessage, setRawSFMessage] = useState(null);
+  // Best move for current pos
+  const [sfBestMove, setSFBestMove] = useState(null);
+  // Best move for opp
+  const [sfPonder, setSFPonder] = useState(null);
+  // Eval
+  const [sfPositionEvaluation, setSFPositionEvaluation] = useState(null);
+  // Moves till mate
+  const [sfPossibleMate, setSFPossibleMate] = useState(null);
+  // Best line found
+  const [sfPv, setSFPv] = useState(null);
+  // Number of moves looked ahead
+  const [sfDepth, setSFDepth] = useState(null);
 
   useEffect(() => {
     // Attempting to listen to stockfish
     const listener = listen("stockfish-says", (event) => {
-      console.log(`Stockfish says: ${event.payload}`);
+      // If not null, set message
+      if(event.payload.uci_message != null){
+        setRawSFMessage(event.payload.uci_message);
+      }
+      if(event.payload.best_move != null){
+        setSFBestMove(event.payload.best_move);
+      }
+      if(event.payload.ponder != null){
+        setSFPonder(event.payload.ponder);
+      }
+      if(event.payload.ponder != null){
+        setSFPositionEvaluation(event.payload.position_evaluation);
+      }
+      if(event.payload.ponder != null){
+        setSFPossibleMate(event.payload.possible_mate);
+      }
+      if(event.payload.ponder != null){
+        setSFPv(event.payload.pv);
+      }
+      if(event.payload.ponder != null){
+        setSFDepth(event.payload.depth);
+      }
     });
     // Starts stockfish
     invoke("start_stockfish");
@@ -39,6 +66,36 @@ function Board() {
       invoke("kill_stockfish");
     };
   }, []);
+
+  // You can notice here that not all of the lines are logged her. This is
+  // because not all of the setRawSFMessage() calls are rendered in, but rather
+  // only the last call before the render is logged. This is because it updates
+  // multiple times BEFORE the component renders again. This may seem like a
+  // problem at first but thinking about it, the latest calls are the ones we
+  // want anyways. Just make sure if a "null" is recieved for something, to
+  // maybe ingnore it. Could reset certain variables after a move is made tho
+  // so it doesn't interfere with the next move
+  useEffect(() => {
+    console.log(rawSFMessage);
+  }, [rawSFMessage]);
+  useEffect(() => {
+    console.log(sfBestMove);
+  }, [sfBestMove]);
+  useEffect(() => {
+    console.log(sfPonder);
+  }, [sfPonder]);
+  useEffect(() => {
+    console.log(sfPositionEvaluation);
+  }, [sfPositionEvaluation]);
+  useEffect(() => {
+    console.log(sfPossibleMate);
+  }, [sfPossibleMate]);
+  useEffect(() => {
+    console.log(sfPv);
+  }, [sfPv]);
+  useEffect(() => {
+    console.log(sfDepth);
+  }, [sfDepth]);
 
   // get the move options for a square to show valid moves
   function getMoveOptions(square: Square) {

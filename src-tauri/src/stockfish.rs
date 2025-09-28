@@ -1,3 +1,6 @@
+use regex::Regex;
+use serde::Serialize;
+use serde_json::json;
 use std::{
     io::{BufRead, BufReader, Write},
     path::PathBuf,
@@ -7,6 +10,7 @@ use std::{
 };
 use tauri::{AppHandle, Emitter, State};
 
+#[derive(Serialize)]
 struct EngineMessage {
     // stockfish engine message in UCI format
     uci_message: String,
@@ -53,7 +57,10 @@ impl Stockfish {
         let stdout_thread = thread::spawn(move || {
             let reader = BufReader::new(stdout);
             for line in reader.lines() {
-                app.emit("stockfish-says", line.unwrap()).unwrap();
+                let raw_message = line.unwrap();
+                let message = parse_stockfish(&raw_message);
+                let json_data = json!(message);
+                app.emit("stockfish-says", json_data).unwrap();
             }
         });
 
@@ -89,6 +96,25 @@ impl Drop for Stockfish {
             eprintln!("Failed to kill Stockfish process: {:?}", err);
         }
         println!("Stockfish killed");
+    }
+}
+// For parsing stockfish messages, if no match, just return none
+fn parse_stockfish(line: &str) -> EngineMessage {
+    let best_move_re = Regex::new(r"bestmove\s+(\S+)").unwrap();
+    let ponder_re = Regex::new(r"ponder\s+(\S+)").unwrap();
+    let cp_re = Regex::new(r"cp\s+(-?\d+)").unwrap();
+    let mate_re = Regex::new(r"mate\s+(-?\d+)").unwrap();
+    let pv_re = Regex::new(r"\spv\s+(.*)").unwrap();
+    let depth_re = Regex::new(r"\sdepth\s+(\d+)").unwrap();
+
+    EngineMessage {
+        uci_message: line.to_string(),
+        best_move: best_move_re.captures(line).map(|c| c[1].to_string()),
+        ponder: ponder_re.captures(line).map(|c| c[1].to_string()),
+        position_evaluation: cp_re.captures(line).map(|c| c[1].to_string()),
+        possible_mate: mate_re.captures(line).map(|c| c[1].to_string()),
+        pv: pv_re.captures(line).map(|c| c[1].to_string()),
+        depth: depth_re.captures(line).map(|c| c[1].parse().unwrap_or(0)),
     }
 }
 
