@@ -17,6 +17,7 @@ function Board() {
   const [optionSquares, setOptionSquares] = useState({});
 
   // Stockfish stuff
+  const [sfTurn, setSFTurn] = useState(null);
   // Raw message
   const [rawSFMessage, setRawSFMessage] = useState(null);
   // Best move for current pos
@@ -31,6 +32,8 @@ function Board() {
   const [sfPv, setSFPv] = useState(null);
   // Number of moves looked ahead
   const [sfDepth, setSFDepth] = useState(null);
+  // Readyness
+  const [sfIsReady, setSFIsReady] = useState(false);
 
   useEffect(() => {
     // Attempting to listen to stockfish
@@ -45,17 +48,20 @@ function Board() {
       if(event.payload.ponder != null){
         setSFPonder(event.payload.ponder);
       }
-      if(event.payload.ponder != null){
+      if(event.payload.position_evaluation != null){
         setSFPositionEvaluation(event.payload.position_evaluation);
       }
-      if(event.payload.ponder != null){
+      if(event.payload.possible_mate != null){
         setSFPossibleMate(event.payload.possible_mate);
       }
-      if(event.payload.ponder != null){
-        setSFPv(event.payload.pv);
+      if(event.payload.pv != null){
+        setSFPv(event.payload.pv.split(" "));
       }
-      if(event.payload.ponder != null){
+      if(event.payload.depth != null){
         setSFDepth(event.payload.depth);
+      }
+      if(event.payload.is_ready != null){
+        setSFIsReady(true);
       }
     });
     // Starts stockfish
@@ -66,6 +72,45 @@ function Board() {
       invoke("kill_stockfish");
     };
   }, []);
+  // Wait until stockfish is ready before sending starting position
+  useEffect(() => {
+    if(sfIsReady){
+      invoke("tell_stockfish_fen", {fen: chessPosition});
+    }
+  }, [sfIsReady]);
+  // Send new fen after every new position change
+  useEffect(() => {
+    if(sfIsReady){
+      invoke("tell_stockfish_fen", {fen: chessPosition});
+    }
+  }, [chessPosition]);
+
+  // For sf's move
+  useEffect(() => {
+    if(sfTurn && sfPv != null) {
+      let fullmoveCounter = chessGame.moveNumber();
+      let turn = chessGame.turn();
+      let moveNumber = 0;
+      let move = null;
+      if (turn == "b"){
+        moveNumber = fullmoveCounter * 2;
+      } else {
+        moveNumber = (fullmoveCounter * 2)-1;
+      }
+
+      if (sfBestMove != null || (sfPv.length >= moveNumber && sfDepth >= 10)) {
+        if (sfBestMove == null){
+          move = sfPv[moveNumber-1];
+        } else {
+          move = sfBestMove;
+        }
+
+        chessGame.move(move);
+        setChessPosition(chessGame.fen());
+        setSFTurn(false);
+      }
+    }
+  }, [sfTurn, chessGame, sfBestMove, sfPv, sfDepth]);
 
   // You can notice here that not all of the lines are logged her. This is
   // because not all of the setRawSFMessage() calls are rendered in, but rather
@@ -75,27 +120,30 @@ function Board() {
   // want anyways. Just make sure if a "null" is recieved for something, to
   // maybe ingnore it. Could reset certain variables after a move is made tho
   // so it doesn't interfere with the next move
-  useEffect(() => {
-    console.log(rawSFMessage);
-  }, [rawSFMessage]);
-  useEffect(() => {
-    console.log(sfBestMove);
-  }, [sfBestMove]);
-  useEffect(() => {
-    console.log(sfPonder);
-  }, [sfPonder]);
-  useEffect(() => {
-    console.log(sfPositionEvaluation);
-  }, [sfPositionEvaluation]);
-  useEffect(() => {
-    console.log(sfPossibleMate);
-  }, [sfPossibleMate]);
-  useEffect(() => {
-    console.log(sfPv);
-  }, [sfPv]);
-  useEffect(() => {
-    console.log(sfDepth);
-  }, [sfDepth]);
+  // useEffect(() => {
+  //   console.log(rawSFMessage);
+  // }, [rawSFMessage]);
+  // useEffect(() => {
+  //   console.log("Best move: " + sfBestMove);
+  // }, [sfBestMove]);
+  // useEffect(() => {
+  //   console.log("Ponder: " + sfPonder);
+  // }, [sfPonder]);
+  // useEffect(() => {
+  //   console.log("Eval: " + sfPositionEvaluation);
+  // }, [sfPositionEvaluation]);
+  // useEffect(() => {
+  //   console.log("Pos Mate: " + sfPossibleMate);
+  // }, [sfPossibleMate]);
+  // useEffect(() => {
+  //   console.log("Best line: " + sfPv);
+  // }, [sfPv]);
+  // useEffect(() => {
+  //   console.log("Depth: " + sfDepth);
+  // }, [sfDepth]);
+  // useEffect(() => {
+  //   console.log("Ready?: " + sfIsReady);
+  // }, [sfIsReady]);
 
   // get the move options for a square to show valid moves
   function getMoveOptions(square: Square) {
@@ -243,6 +291,13 @@ function Board() {
       setMoveFrom('');
       setOptionSquares({});
 
+      // Have stockfish move
+      setSFTurn(true);
+      // Reseting these for the chess bot so it doesn't interfer with its move
+      setSFBestMove(null);
+      setSFPv(null);
+      setSFDepth(0);
+
       // return true as the move was successful
       return true;
     } catch {
@@ -266,7 +321,7 @@ function Board() {
           darkSquareStyle: { backgroundColor: "var(--secondary)" },
           lightSquareStyle: { backgroundColor: "var(--primary)" },
           boardStyle: { border: "1rem solid var(--accent-800)" },
-          showNotation: false,
+          showNotation: true,
           animationDuration: 300,
         }}
       />

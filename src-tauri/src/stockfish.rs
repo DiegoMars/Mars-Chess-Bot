@@ -26,6 +26,8 @@ struct EngineMessage {
     pv: Option<String>,
     // number of halfmoves the engine looks ahead
     depth: Option<u64>,
+    // if stockfish is ready
+    is_ready: Option<String>,
 }
 
 pub struct Stockfish {
@@ -87,6 +89,19 @@ impl Stockfish {
             stdout_thread: Some(stdout_thread),
         }
     }
+    fn tell_fen(&mut self, fen: String) {
+        let mut stdin = self.shared_stdin.lock().unwrap();
+        writeln!(stdin, "stop").unwrap();
+        if fen == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
+            writeln!(stdin, "position startpos").unwrap();
+            writeln!(stdin, "go depth 25 mate 5").unwrap();
+            stdin.flush().unwrap();
+            return;
+        }
+        writeln!(stdin, "position {}", fen).unwrap();
+        writeln!(stdin, "go depth 25 mate 5").unwrap();
+        stdin.flush().unwrap();
+    }
 }
 // When the reference for the stockfish struct is dropped, kill stockfish
 impl Drop for Stockfish {
@@ -107,6 +122,12 @@ fn parse_stockfish(line: &str) -> EngineMessage {
     let pv_re = Regex::new(r"\spv\s+(.*)").unwrap();
     let depth_re = Regex::new(r"\sdepth\s+(\d+)").unwrap();
 
+    let ready_re = Regex::new(r"^(readyok)$").unwrap();
+    let ready = ready_re.captures(line).map(|c| c[1].to_string());
+    if ready == Some("readyok".into()) {
+        println!("Stockfish is ready")
+    }
+
     EngineMessage {
         uci_message: line.to_string(),
         best_move: best_move_re.captures(line).map(|c| c[1].to_string()),
@@ -115,6 +136,7 @@ fn parse_stockfish(line: &str) -> EngineMessage {
         possible_mate: mate_re.captures(line).map(|c| c[1].to_string()),
         pv: pv_re.captures(line).map(|c| c[1].to_string()),
         depth: depth_re.captures(line).map(|c| c[1].parse().unwrap_or(0)),
+        is_ready: ready,
     }
 }
 
@@ -161,4 +183,22 @@ pub async fn kill_stockfish(state: State<'_, SharedStockfish>) -> Result<String,
         }
     });
     Ok("Stockfish killed".into())
+}
+
+#[tauri::command]
+pub async fn tell_stockfish_fen(
+    state: State<'_, SharedStockfish>,
+    fen: String,
+) -> Result<String, ()> {
+    let state = state.inner().0.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut shared = state.lock().unwrap();
+        if let Some(child) = shared.as_mut() {
+            child.tell_fen(fen);
+            println!("Told stockfish");
+        } else {
+            println!("There is no engine");
+        }
+    });
+    Ok("Told stockfish".into())
 }
