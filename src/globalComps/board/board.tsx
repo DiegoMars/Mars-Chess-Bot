@@ -39,29 +39,33 @@ function Board() {
     // Attempting to listen to stockfish
     const listener = listen("stockfish-says", (event) => {
       // If not null, set message
-      if(event.payload.uci_message != null){
-        setRawSFMessage(event.payload.uci_message);
-      }
-      if(event.payload.best_move != null){
-        setSFBestMove(event.payload.best_move);
-      }
-      if(event.payload.ponder != null){
-        setSFPonder(event.payload.ponder);
-      }
-      if(event.payload.position_evaluation != null){
-        setSFPositionEvaluation(event.payload.position_evaluation);
-      }
-      if(event.payload.possible_mate != null){
-        setSFPossibleMate(event.payload.possible_mate);
-      }
-      if(event.payload.pv != null){
-        setSFPv(event.payload.pv.split(" "));
-      }
-      if(event.payload.depth != null){
-        setSFDepth(event.payload.depth);
-      }
-      if(event.payload.is_ready != null){
+      let message = event.payload;
+      if(message.is_ready != null){
         setSFIsReady(true);
+      }
+      if(message.best_move != null){      // Changed it to MAKE SURE THAT THE
+                                          // BEST MOVE STATE IS WRITTEN
+        setSFBestMove(message.best_move);
+      }
+      else {
+        if(message.uci_message != null){
+          setRawSFMessage(message.uci_message);
+        }
+        if(message.ponder != null){
+          setSFPonder(message.ponder);
+        }
+        if(message.position_evaluation != null){
+          setSFPositionEvaluation(message.position_evaluation);
+        }
+        if(message.possible_mate != null){
+          setSFPossibleMate(message.possible_mate);
+        }
+        if(message.pv != null){
+          setSFPv(message.pv.split(" "));
+        }
+        if(message.depth != null){
+          setSFDepth(message.depth);
+        }
       }
     });
     // Starts stockfish
@@ -88,24 +92,32 @@ function Board() {
   // For sf's move
   useEffect(() => {
     if(sfTurn && sfPv != null) {
-      let fullmoveCounter = chessGame.moveNumber();
-      let turn = chessGame.turn();
-      let moveNumber = 0;
-      let move = null;
-      if (turn == "b"){
-        moveNumber = fullmoveCounter * 2;
-      } else {
-        moveNumber = (fullmoveCounter * 2)-1;
-      }
+      // let fullmoveCounter = chessGame.moveNumber();
+      // let turn = chessGame.turn();
+      // let moveNumber = 0;
+      // let move = null;
+      // if (turn == "b"){
+      //   moveNumber = fullmoveCounter * 2;
+      // } else {
+      //   moveNumber = (fullmoveCounter * 2)-1;
+      // }
 
-      if (sfBestMove != null || (sfPv.length >= moveNumber && sfDepth >= 10)) {
-        if (sfBestMove == null){
-          move = sfPv[moveNumber-1];
-        } else {
-          move = sfBestMove;
-        }
+      // if (sfBestMove != null || (sfPv.length >= moveNumber && sfDepth >= 10)) {
+      //   if (sfBestMove == null){
+      //     move = sfPv[moveNumber-1];
+      //   } else {
+      //     move = sfBestMove;
+      //   }
+      //
+      //   chessGame.move(move);
+      //   setChessPosition(chessGame.fen());
+      //   setSFTurn(false);
+      // }
 
-        chessGame.move(move);
+      // Making the best move only
+      if (sfBestMove != null) {
+        console.log("Making move")
+        chessGame.move(sfBestMove);
         setChessPosition(chessGame.fen());
         setSFTurn(false);
       }
@@ -123,9 +135,9 @@ function Board() {
   // useEffect(() => {
   //   console.log(rawSFMessage);
   // }, [rawSFMessage]);
-  // useEffect(() => {
-  //   console.log("Best move: " + sfBestMove);
-  // }, [sfBestMove]);
+  useEffect(() => {
+    console.log("Best move: " + sfBestMove);
+  }, [sfBestMove]);
   // useEffect(() => {
   //   console.log("Ponder: " + sfPonder);
   // }, [sfPonder]);
@@ -293,10 +305,10 @@ function Board() {
 
       // Have stockfish move
       setSFTurn(true);
-      // Reseting these for the chess bot so it doesn't interfer with its move
-      setSFBestMove(null);
       setSFPv(null);
       setSFDepth(0);
+      // Reseting this for the chess bot so it doesn't interfer with its move
+      setSFBestMove(null);
 
       // return true as the move was successful
       return true;

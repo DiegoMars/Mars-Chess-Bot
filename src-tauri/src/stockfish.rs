@@ -60,6 +60,7 @@ impl Stockfish {
             let reader = BufReader::new(stdout);
             for line in reader.lines() {
                 let raw_message = line.unwrap();
+                println!("{}", raw_message);
                 let message = parse_stockfish(&raw_message);
                 let json_data = json!(message);
                 app.emit("stockfish-says", json_data).unwrap();
@@ -90,15 +91,19 @@ impl Stockfish {
         }
     }
     fn tell_fen(&mut self, fen: String) {
+        println!("Told stockfish");
         let mut stdin = self.shared_stdin.lock().unwrap();
         writeln!(stdin, "stop").unwrap();
+        stdin.flush().unwrap();
         if fen == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
             writeln!(stdin, "position startpos").unwrap();
+            stdin.flush().unwrap();
             writeln!(stdin, "go depth 25 mate 5").unwrap();
             stdin.flush().unwrap();
             return;
         }
-        writeln!(stdin, "position {}", fen).unwrap();
+        writeln!(stdin, "position fen {}", fen).unwrap();
+        stdin.flush().unwrap();
         writeln!(stdin, "go depth 25 mate 5").unwrap();
         stdin.flush().unwrap();
     }
@@ -195,7 +200,6 @@ pub async fn tell_stockfish_fen(
         let mut shared = state.lock().unwrap();
         if let Some(child) = shared.as_mut() {
             child.tell_fen(fen);
-            println!("Told stockfish");
         } else {
             println!("There is no engine");
         }
