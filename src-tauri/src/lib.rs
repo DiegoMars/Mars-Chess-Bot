@@ -12,7 +12,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             stockfish::start_stockfish,
             stockfish::kill_stockfish,
-            stockfish::tell_stockfish_fen
+            stockfish::tell_stockfish_fen,
+            stockfish::tell_stockfish_ponder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

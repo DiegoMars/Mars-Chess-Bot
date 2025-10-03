@@ -17,7 +17,7 @@ function Board() {
   const [optionSquares, setOptionSquares] = useState({});
 
   // Stockfish stuff
-  const [sfTurn, setSFTurn] = useState(null);
+  const [sfTurn, setSFTurn] = useState(false);
   // Raw message
   const [rawSFMessage, setRawSFMessage] = useState(null);
   // Best move for current pos
@@ -85,7 +85,11 @@ function Board() {
   // Send new fen after every new position change
   useEffect(() => {
     if(sfIsReady){
-      invoke("tell_stockfish_fen", {fen: chessPosition});
+      if(sfTurn){
+        invoke("tell_stockfish_fen", {fen: chessPosition});
+      } else {
+        invoke("tell_stockfish_ponder", {fen: chessPosition})
+      }
     }
   }, [chessPosition]);
 

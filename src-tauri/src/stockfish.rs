@@ -75,10 +75,9 @@ impl Stockfish {
             let mut locked = shared_stdin.lock().unwrap();
             writeln!(locked, "uci").unwrap();
             locked.flush().unwrap();
-        }
-        {
-            let mut locked = shared_stdin.lock().unwrap();
             writeln!(locked, "isready").unwrap();
+            locked.flush().unwrap();
+            writeln!(locked, "setoption name ponder value true").unwrap();
             locked.flush().unwrap();
         }
         // std::thread::sleep(std::time::Duration::from_secs(1)); // Time for commands to go into the
@@ -91,7 +90,7 @@ impl Stockfish {
         }
     }
     fn tell_fen(&mut self, fen: String) {
-        println!("Told stockfish");
+        println!("Told stockfish fen");
         let mut stdin = self.shared_stdin.lock().unwrap();
         writeln!(stdin, "stop").unwrap();
         stdin.flush().unwrap();
@@ -104,7 +103,28 @@ impl Stockfish {
         }
         writeln!(stdin, "position fen {}", fen).unwrap();
         stdin.flush().unwrap();
+        writeln!(stdin, "d").unwrap();
+        stdin.flush().unwrap();
         writeln!(stdin, "go depth 25 mate 5").unwrap();
+        stdin.flush().unwrap();
+    }
+    fn tell_ponder(&mut self, fen: String) {
+        println!("Told stockfish ponder");
+        let mut stdin = self.shared_stdin.lock().unwrap();
+        writeln!(stdin, "stop").unwrap();
+        stdin.flush().unwrap();
+        if fen == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" {
+            writeln!(stdin, "position startpos").unwrap();
+            stdin.flush().unwrap();
+            writeln!(stdin, "go depth 25 mate 5 ponder").unwrap();
+            stdin.flush().unwrap();
+            return;
+        }
+        writeln!(stdin, "position fen {}", fen).unwrap();
+        stdin.flush().unwrap();
+        writeln!(stdin, "d").unwrap();
+        stdin.flush().unwrap();
+        writeln!(stdin, "go depth 25 mate 5 ponder").unwrap();
         stdin.flush().unwrap();
     }
 }
@@ -200,6 +220,23 @@ pub async fn tell_stockfish_fen(
         let mut shared = state.lock().unwrap();
         if let Some(child) = shared.as_mut() {
             child.tell_fen(fen);
+        } else {
+            println!("There is no engine");
+        }
+    });
+    Ok("Told stockfish".into())
+}
+
+#[tauri::command]
+pub async fn tell_stockfish_ponder(
+    state: State<'_, SharedStockfish>,
+    fen: String,
+) -> Result<String, ()> {
+    let state = state.inner().0.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut shared = state.lock().unwrap();
+        if let Some(child) = shared.as_mut() {
+            child.tell_ponder(fen);
         } else {
             println!("There is no engine");
         }
