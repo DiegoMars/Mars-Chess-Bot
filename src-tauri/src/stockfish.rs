@@ -2,6 +2,8 @@ use regex::Regex;
 use serde::Serialize;
 use serde_json::json;
 use std::{
+    env::consts::OS,
+    fs,
     io::{BufRead, BufReader, Write},
     path::PathBuf,
     process::{ChildStdin, Command, Stdio},
@@ -37,6 +39,22 @@ pub struct Stockfish {
     // Mutex is to prevent multiple threads accessing and mutating something
     // at the same time
     stdout_thread: Option<std::thread::JoinHandle<()>>,
+}
+
+// Checking and downloading the right stockfish binary
+async fn grab_sf_binary() -> PathBuf {
+    let mut binary = PathBuf::from("./stockfishBinary/");
+    if !(binary.exists()) {
+        fs::create_dir_all(&binary).expect("Failed to make binary folder");
+    }
+    binary.push("stockfish");
+    if OS == "windows" {
+        binary.set_extension("exe");
+    }
+    if !(binary.exists()) {
+        if (OS == "windows") {}
+    }
+    "temp".into()
 }
 
 impl Stockfish {
